@@ -7,6 +7,7 @@ import logging
 import time
 import random
 import re
+import ssl
 
 from datetime import datetime, timedelta
 
@@ -57,6 +58,16 @@ class vSphere(Machinery):
                                     is found.
         """
         self.connect_opts = {}
+
+        if self.options.vsphere.ssl:
+            if self.options.vsphere.ssl == "none":
+                requests.packages.urllib3.disable_warnings()
+                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                context.verify_mode = ssl.CERT_NONE
+                self.connect_opts["sslContext"] = context
+        else:
+            raise CuckooCriticalError("vSphere SSL setting not found, "
+                                      "please add it to the config file.")
 
         if self.options.vsphere.host:
             self.connect_opts["host"] = self.options.vsphere.host
