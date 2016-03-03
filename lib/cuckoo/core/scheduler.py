@@ -23,6 +23,7 @@ from lib.cuckoo.core.plugins import list_plugins, RunAuxiliary, RunProcessing
 from lib.cuckoo.core.plugins import RunSignatures, RunReporting
 from lib.cuckoo.core.resultserver import ResultServer
 from lib.cuckoo.core.rooter import rooter, vpns
+from lib.cuckoo.core.storage import storeResultsAWS
 
 log = logging.getLogger(__name__)
 
@@ -519,6 +520,10 @@ class AnalysisManager(threading.Thread):
             log.exception("Failure in AnalysisManager.run")
 
         active_analysis_count -= 1
+
+        log.info("AWS Setting {}".format(self.cfg.cuckoo.aws))
+        if self.cfg.cuckoo.aws == "True":
+            storeResultsAWS(self.task.id)
 
 class Scheduler(object):
     """Tasks Scheduler.
