@@ -18,8 +18,8 @@ def storeResultsAWS(analysis_id):
 
             try:
                 s3 = boto.s3.connect_to_region("us-east-1")
-                log.info("Connected to S3")
-                log.info("AWS Bucket {}".format(cfg.cuckoo.aws_bucket))
+                log.debug("Connected to S3")
+                log.debug("AWS Bucket {}".format(cfg.cuckoo.aws_bucket))
                 bucket = s3.get_bucket(cfg.cuckoo.aws_bucket)
                 log.debug("Connected to the bucket")
                 key = bucket.new_key("%s" % (aws_filename))

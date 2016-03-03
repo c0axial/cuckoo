@@ -522,7 +522,7 @@ class AnalysisManager(threading.Thread):
         active_analysis_count -= 1
 
         log.info("AWS Setting {}".format(self.cfg.cuckoo.aws))
-        if self.cfg.cuckoo.aws == "True":
+        if self.cfg.cuckoo.aws:
             storeResultsAWS(self.task.id)
 
 class Scheduler(object):
