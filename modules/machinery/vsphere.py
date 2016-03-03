@@ -59,8 +59,8 @@ class vSphere(Machinery):
         """
         self.connect_opts = {}
 
-        if self.options.vsphere.ssl:
-            if self.options.vsphere.ssl == "none":
+        if self.options.vsphere.unverified_ssl:
+            if self.options.vsphere.unverified_ssl == "none":
                 requests.packages.urllib3.disable_warnings()
                 context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
                 context.verify_mode = ssl.CERT_NONE
