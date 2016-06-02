@@ -92,3 +92,18 @@ def ensurelist(o):
     if isinstance(o, (tuple, list)):
         return o
     return o,
+
+@register.filter
+def sizeof_fmt(num):
+    suffix = "B"
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, "Yi", suffix)
+
+@register.filter
+def process_name(pid, analysis):
+    for proc in analysis.get("behavior", {}).get("generic", []):
+        if proc["pid"] == pid:
+            return proc["process_name"]

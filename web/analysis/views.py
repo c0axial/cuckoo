@@ -26,8 +26,8 @@ from gridfs import GridFS
 sys.path.append(settings.CUCKOO_PATH)
 
 from lib.cuckoo.core.database import Database, TASK_PENDING, TASK_COMPLETED
-from lib.cuckoo.common.utils import store_temp_file
-from lib.cuckoo.common.constants import CUCKOO_ROOT
+from lib.cuckoo.common.utils import store_temp_file, versiontuple
+from lib.cuckoo.common.constants import CUCKOO_ROOT, LATEST_HTTPREPLAY
 import modules.processing.network as network
 
 results_db = settings.MONGO
@@ -222,6 +222,19 @@ def search_behavior(request, task_id):
                         process_results.append(call)
                         break
 
+                    if isinstance(value, (tuple, list)):
+                        for arg in value:
+                            if not isinstance(arg, basestring):
+                                continue
+
+                            if query.search(arg):
+                                call["id"] = index
+                                process_results.append(call)
+                                break
+                        else:
+                            continue
+                        break
+
         if process_results:
             results.append({
                 "process": process,
@@ -263,12 +276,20 @@ def report(request, task_id):
     except ImportError:
         httpreplay_version = None
 
+    # Is this version of httpreplay deprecated?
+    deprecated = httpreplay_version and \
+        versiontuple(httpreplay_version) < versiontuple(LATEST_HTTPREPLAY)
+
     return render(request, "analysis/report.html", {
         "analysis": report,
         "domainlookups": domainlookups,
         "iplookups": iplookups,
-        "HAVE_HTTPREPLAY": HAVE_HTTPREPLAY,
-        "httpreplay_version": httpreplay_version,
+        "httpreplay": {
+            "have": HAVE_HTTPREPLAY,
+            "deprecated": deprecated,
+            "current_version": httpreplay_version,
+            "latest_version": LATEST_HTTPREPLAY,
+        },
     })
 
 @require_safe
@@ -589,6 +610,7 @@ def export(request, task_id):
     # analysis. This information serves as metadata when importing a task.
     analysis_path = os.path.join(path, "analysis.json")
     with open(analysis_path, "w") as outfile:
+        report["target"].pop("file_id", None)
         json.dump({"target": report["target"]}, outfile, indent=4)
 
     f = StringIO()
@@ -647,7 +669,22 @@ def import_analysis(request):
                              "please provide a legitimate .zip file.",
                 })
 
-        analysis_info = json.loads(zf.read("analysis.json"))
+        if "analysis.json" in zf.namelist():
+            analysis_info = json.loads(zf.read("analysis.json"))
+        elif "binary" in zf.namelist():
+            analysis_info = {
+                "target": {
+                    "category": "file",
+                },
+            }
+        else:
+            analysis_info = {
+                "target": {
+                    "category": "url",
+                    "url": "unknown",
+                },
+            }
+
         category = analysis_info["target"]["category"]
 
         if category == "file":

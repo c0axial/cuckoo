@@ -1,15 +1,4 @@
-{% if analysis.network.pcap_id or analysis.network.mitmproxy_id %}
-<div class="alert alert-info center">
-    {% if analysis.network.pcap_id %}
-    <a class="btn btn-primary btn-small" href="{% url "analysis.views.file" "pcap" analysis.network.pcap_id %}">Download PCAP</a>
-    {% endif %}
-    {% if analysis.network.mitmproxy_id %}
-    <a class="btn btn-primary btn-small" href="{% url "analysis.views.file" "mitmproxy" analysis.network.mitmproxy_id %}">Download mitmproxy dump</a>
-    {% endif %}
-</div>
-{% endif %}
-
-{% if not HAVE_HTTPREPLAY %}
+{% if not httpreplay.have %}
 <div class="alert alert-warning">
     <strong>Deprecation note:</strong>
     While processing this analysis you did not have the httpreplay Python
@@ -19,13 +8,15 @@
     It is recommended that you install this library and possibly reprocess any
     interesting analysis tasks.
 </div>
-{% elif httpreplay_version != "0.1.7" %}
+{% elif httpreplay.deprecated %}
 <div class="alert alert-warning">
     <strong>Deprecation note:</strong>
-    You are using an old version of HTTPReplay which doesn't handle various
-    corner cases correctly. It also doesn't decrypt some TLS Cipher Suites
-    leaving one without decrypted TLS/HTTPS streams. Please upgrade it to
-    the latest version (`pip install --upgrade httpreplay`).
+    You are using version {{ httpreplay.current_version }} of HTTPReplay,
+    rather than the latest version {{ httpreplay.latest_version }}, which may
+    not handle various corner cases and/or TLS cipher suites correctly. This
+    could result in not getting all the HTTP/HTTPS streams that are available
+    or corrupt some streams that were not handled correctly before. Please
+    upgrade it to the latest version (`pip install --upgrade httpreplay`).
 </div>
 {% endif %}
 
@@ -46,6 +37,23 @@
         <li><a href="#network_irc_tab" data-toggle="tab">IRC ({{ analysis.network.irc|length }})</a></li>
         <li><a href="#network_suricata_tab" data-toggle="tab">Suricata ({{ analysis.suricata|custom_length:"alerts tls" }})</a></li>
         <li><a href="#network_snort_tab" data-toggle="tab">Snort ({{ analysis.snort.alerts|length }})</a></li>
+        <li class="pull-right">
+{% if analysis.network.pcap_id or analysis.network.mitmproxy_id %}
+    {% if analysis.network.pcap_id %}
+    <a class="btn btn-primary btn-small" href="{% url "analysis.views.file" "pcap" analysis.network.pcap_id %}">
+        <span class="glyphicon glyphicon-save" aria-hidden="true"></span>
+        Download PCAP
+    </a>
+    {% endif %}
+    {% if analysis.network.mitmproxy_id %}
+    <a class="btn btn-primary btn-small" href="{% url "analysis.views.file" "mitmproxy" analysis.network.mitmproxy_id %}">
+        <span class="glyphicon glyphicon-save" aria-hidden="true"></span>
+        Download mitmproxy dump
+     </a>
+    {% endif %}
+{% endif %}
+        </li>
+
     </ul>
     <div class="tab-content">
         <div class="tab-pane fade in active" id="network_hosts_tab">{% include "analysis/network/_hosts.html" %}</div>

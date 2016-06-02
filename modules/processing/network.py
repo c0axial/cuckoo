@@ -15,10 +15,11 @@ import urlparse
 
 from lib.cuckoo.common.abstracts import Processing
 from lib.cuckoo.common.config import Config
+from lib.cuckoo.common.constants import LATEST_HTTPREPLAY
 from lib.cuckoo.common.dns import resolve
 from lib.cuckoo.common.irc import ircMessage
 from lib.cuckoo.common.objects import File
-from lib.cuckoo.common.utils import convert_to_printable
+from lib.cuckoo.common.utils import convert_to_printable, versiontuple
 from lib.cuckoo.common.exceptions import CuckooProcessingError
 
 try:
@@ -52,14 +53,16 @@ log = logging.getLogger(__name__)
 cfg = Config()
 
 # Urge users to upgrade to the latest version.
-if HAVE_HTTPREPLAY and getattr(httpreplay, "__version__", None) in (
-        None, "0.1.4", "0.1.5", "0.1.6"):
+_v = getattr(httpreplay, "__version__", None) if HAVE_HTTPREPLAY else None
+if _v and versiontuple(_v) < versiontuple(LATEST_HTTPREPLAY):
     log.warning(
-        "You are using an old version of HTTPReplay which doesn't handle "
-        "various corner cases correctly. It also doesn't decrypt some TLS "
-        "Cipher Suites leaving one without decrypted TLS/HTTPS streams. "
-        "Please upgrade it to the latest version (`pip install --upgrade "
-        "httpreplay`)."
+        "You are using version %s of HTTPReplay, rather than the latest "
+        "version %s, which may not handle various corner cases and/or TLS "
+        "cipher suites correctly. This could result in not getting all the "
+        "HTTP/HTTPS streams that are available or corrupt some streams that "
+        "were not handled correctly before. Please upgrade it to the latest "
+        "version (`pip install --upgrade httpreplay`).",
+        _v, LATEST_HTTPREPLAY,
     )
 
 class Pcap(object):
@@ -87,6 +90,7 @@ class Pcap(object):
         # addresses that are no longer available.
         self.tcp_connections_dead = {}
         self.dead_hosts = {}
+        self.alive_hosts = {}
         # List containing all UDP packets.
         self.udp_connections = []
         self.udp_connections_seen = set()
@@ -619,6 +623,8 @@ class Pcap(object):
                         if not ((dst, dport, src, sport) in self.tcp_connections_seen or (src, sport, dst, dport) in self.tcp_connections_seen):
                             self.tcp_connections.append((src, sport, dst, dport, offset, ts-first_ts))
                             self.tcp_connections_seen.add((src, sport, dst, dport))
+
+                        self.alive_hosts[dst, dport] = True
                     else:
                         ipconn = (
                             connection["src"], tcp.sport,
@@ -681,11 +687,14 @@ class Pcap(object):
         self.results["dead_hosts"] = []
 
         # Report each IP/port combination as a dead host if we've had to retry
-        # at least 3 times to connect to it. TODO We should remove the IP/port
-        # combination from the list if the connection was successful later on
-        # during the analysis.
+        # at least 3 times to connect to it and if no successful connections
+        # were detected throughout the analysis.
         for (ip, port), count in self.dead_hosts.items():
-            if count > 2 and (ip, port) not in self.results["dead_hosts"]:
+            if count < 3 or (ip, port) in self.alive_hosts:
+                continue
+
+            # Report once.
+            if (ip, port) not in self.results["dead_hosts"]:
                 self.results["dead_hosts"].append((ip, port))
 
         return self.results
@@ -717,7 +726,7 @@ class Pcap2(object):
         if not os.path.exists(self.network_path):
             os.mkdir(self.network_path)
 
-        r = httpreplay.reader.PcapReader(self.pcap_path)
+        r = httpreplay.reader.PcapReader(open(self.pcap_path, "rb"))
         r.tcp = httpreplay.smegma.TCPPacketStreamer(r, self.handlers)
 
         l = sorted(r.process(), key=lambda x: x[1])

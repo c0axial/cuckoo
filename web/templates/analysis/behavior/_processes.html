@@ -86,17 +86,17 @@ function load_filtered_chunk(pid, category) {
 }
 </script>
 
-<div class="tabbable">
+<div class="processes tabbable">
     <ul class="nav nav-tabs">
         <li><a href="#search" data-toggle="tab"><span class="glyphicon glyphicon-search"></span> Search</a></li>
     {% for process in analysis.behavior.processes|filter_key_if_has:"track" %}
-        <li {% if forloop.counter == 1 %}class="active"{% endif %}><a href="#process_{{process.pid}}" data-toggle="tab"><span class="glyphicon glyphicon-cog"></span> {{process.process_name}} ({{process.pid}})</a></li>
+        <li class="{% if forloop.first %}active{% endif %}"><a class="process" href="#process_{{process.pid}}" data-pid="{{process.pid}}" data-toggle="tab"><span class="glyphicon glyphicon-cog"></span> {{process.process_name}} ({{process.pid}})</a></li>
     {% endfor %}
     </ul>
     <div class="tab-content">
     {% include "analysis/behavior/_search.html" %}
     {% for process in analysis.behavior.processes|filter_key_if_has:"track" %}
-        <div class="tab-pane{% if forloop.counter == 1%} active{% endif %}" id="process_{{process.pid}}" data-pid="{{process.pid}}" data-length="{{process.calls|length}}">
+        <div class="tab-pane {% if forloop.first %}active{% endif %}" id="process_{{process.pid}}" data-pid="{{process.pid}}" data-length="{{process.calls|length}}">
             <div class="alert alert-info" style="text-align: center;"><b>{{process.process_name}}</b>, PID: <b>{{process.pid}}</b>, Parent PID: {{process.ppid}}</div>
 
             <p style="text-align: center;">
@@ -108,6 +108,8 @@ function load_filtered_chunk(pid, category) {
                 <a id="badge_services_{{process.pid}}" class="badge services" style="color:black;">services</a>
                 <a id="badge_sync_{{process.pid}}" class="badge synchronisation" style="color:black;">synchronisation</a>
                 <a id="badge_iexplore_{{process.pid}}" class="badge iexplore" style="color:black;">iexplore</a>
+                <a id="badge_office_{{process.pid}}" class="badge office" style="color:black;">office</a>
+                <a id="badge_pdf_{{process.pid}}" class="badge pdf" style="color:black;">pdf</a>
             </p>
 
             <script type="text/javascript">
@@ -121,6 +123,8 @@ function load_filtered_chunk(pid, category) {
                 $("#badge_services_{{process.pid}}").click(function() { load_filtered_chunk({{process.pid}}, "services"); });
                 $("#badge_sync_{{process.pid}}").click(function() { load_filtered_chunk({{process.pid}}, "synchronisation"); });
                 $("#badge_iexplore_{{process.pid}}").click(function() { load_filtered_chunk({{process.pid}}, "iexplore"); });
+                $("#badge_office_{{process.pid}}").click(function() { load_filtered_chunk({{process.pid}}, "office"); });
+                $("#badge_pdf_{{process.pid}}").click(function() { load_filtered_chunk({{process.pid}}, "pdf"); });
 
                 $('.tab-content').on('click', '.call-link', function (event) {
                     cid = $(this).attr('data-cid');
@@ -142,10 +146,19 @@ function load_filtered_chunk(pid, category) {
                 <ul class="pagination">
                 </ul>
             </div>
-            <script type="text/javascript">
-                load_chunk({{process.pid}}, 1);
-            </script>
         </div>
+        {% if forloop.first %}
+        <script type="text/javascript">
+            load_chunk({{ process.pid }}, 1);
+        </script>
+        {% endif %}
     {% endfor %}
     </div>
 </div>
+<script type="text/javascript">
+    $('div.processes a.process[data-toggle="tab"]').on('show.bs.tab', function (e) {
+        var pid = $(e.target).data("pid");
+        $("#process_"+pid+" div.calltable").html("Loading..");
+        load_chunk(pid, 1);
+    });
+</script>

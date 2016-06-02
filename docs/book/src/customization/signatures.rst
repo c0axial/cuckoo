@@ -41,15 +41,15 @@ The following is a basic example signature:
             severity = 2
             categories = ["generic"]
             authors = ["Cuckoo Developers"]
-            minimum = "1.2"
+            minimum = "2.0"
 
             def on_complete(self):
                 return self.check_file(pattern=".*\\.exe$",
                                        regex=True)
 
 As you can see the structure is really simple and consistent with the other
-modules. We're going to get into details later, but as you can see at line **12**
-from version 1.2 Cuckoo provides some helper functions that make the process of
+modules. We're going to get into details later, but since version 1.2 Cuckoo
+provides some helper functions that make the process of
 creating signatures much easier.
 
 In this example we just walk through all the accessed files in the summary and check
@@ -117,10 +117,10 @@ In our example, we would create the following skeleton:
             categories = ["trojan"] # We add a category
             families = ["badbadmalware"] # We add the name of our fictional malware family
             authors = ["Me"] # We specify the author
-            minimum = "1.2" # We specify that in order to run the signature, the user will need at least Cuckoo 0.5
+            minimum = "2.0" # We specify that in order to run the signature, the user will simply need Cuckoo 2.0
 
-        def on_complete(self):
-            return
+            def on_complete(self):
+                return
 
 This is a perfectly valid signature. It doesn't really do anything yet,
 so now we need to define the conditions for the signature to be matched.
@@ -139,10 +139,10 @@ As we said, we want to match a particular mutex name, so we proceed as follows:
             categories = ["trojan"]
             families = ["badbadmalware"]
             authors = ["Me"]
-            minimum = "1.2"
+            minimum = "2.0"
 
-        def on_complete(self):
-            return self.check_mutex("i_am_a_malware")
+            def on_complete(self):
+                return self.check_mutex("i_am_a_malware")
 
 Simple as that, now our signature will return ``True`` whether the analyzed
 malware was observed opening the specified mutex.
@@ -162,16 +162,16 @@ you could translate the previous signature in the following way:
             categories = ["trojan"]
             families = ["badbadmalware"]
             authors = ["Me"]
-            minimum = "1.2"
+            minimum = "2.0"
 
-        def on_complete(self):
-            for process in self.get_processes_by_pid():
-                if "summary" in process and "mutexes" in process["summary"]:
-                    for mutex in process["summary"]["mutexes"]:
-                        if mutex == "i_am_a_malware":
-                            return True
+            def on_complete(self):
+                for process in self.get_processes_by_pid():
+                    if "summary" in process and "mutexes" in process["summary"]:
+                        for mutex in process["summary"]["mutexes"]:
+                            if mutex == "i_am_a_malware":
+                                return True
 
-            return False
+                return False
 
 Evented Signatures
 ==================
@@ -200,7 +200,7 @@ An example signature using this technique is the following:
             severity = 2
             categories = ["generic"]
             authors = ["Cuckoo Developers"]
-            minimum = "1.2"
+            minimum = "2.0"
 
             # Evented signatures can specify filters that reduce the amount of
             # API calls that are streamed in. One can filter Process name, API

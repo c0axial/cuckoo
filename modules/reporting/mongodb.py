@@ -109,6 +109,10 @@ class MongoDB(Report):
         if "network" not in report:
             report["network"] = {}
 
+        # This will likely hardcode the cuckoo.log to this point, but that
+        # should be fine.
+        report["debug"]["cuckoo"] = list(report["debug"]["cuckoo"])
+
         # Store path of the analysis path.
         report["info"]["analysis_path"] = self.analysis_path
 
@@ -140,14 +144,22 @@ class MongoDB(Report):
             mitmpr_id = self.store_file(mitmpr)
             report["network"]["mitmproxy_id"] = mitmpr_id
 
-        # Store the process memory dump file in GridFS and reference it back in the report.
+        # Store the process memory dump file and extracted files in GridFS and
+        # reference it back in the report.
         if "procmemory" in report and self.options.get("store_memdump", False):
             for idx, procmem in enumerate(report["procmemory"]):
-                procmem_path = os.path.join(self.analysis_path, "memory", "{0}.dmp".format(procmem["pid"]))
+                procmem_path = os.path.join(
+                    self.analysis_path, "memory", "%s.dmp" % procmem["pid"]
+                )
                 procmem_file = File(procmem_path)
                 if procmem_file.valid():
                     procmem_id = self.store_file(procmem_file)
-                    report["procmemory"][idx].update({"procmem_id": procmem_id})
+                    procmem["procmem_id"] = procmem_id
+
+                for extracted in procmem.get("extracted", []):
+                    f = File(extracted["path"])
+                    if f.valid():
+                        extracted["extracted_id"] = self.store_file(f)
 
         # Walk through the dropped files, store them in GridFS and update the
         # report with the ObjectIds.

@@ -17,6 +17,7 @@ import platform
 import threading
 import json
 import multiprocessing
+import warnings
 
 from cStringIO import StringIO
 from datetime import datetime
@@ -26,6 +27,12 @@ from lib.cuckoo.common.config import Config
 
 from lib.cuckoo.common.constants import CUCKOO_ROOT, CUCKOO_VERSION
 from lib.cuckoo.common.constants import GITHUB_URL, ISSUES_PAGE_URL
+
+try:
+    import bs4
+    HAVE_BS4 = True
+except ImportError:
+    HAVE_BS4 = False
 
 try:
     import chardet
@@ -392,6 +399,17 @@ def jsbeautify(javascript):
         sys.stdout = origout
     return javascript
 
+def htmlprettify(html):
+    """Beautifies HTML through BeautifulSoup4."""
+    if not HAVE_BS4:
+        return html
+
+    # The following ignores the following bs4 warning:
+    # UserWarning: "." looks like a filename, not markup.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", lineno=182)
+        return bs4.BeautifulSoup(html, "html.parser").prettify()
+
 def json_default(obj):
     """JSON serializer for objects not serializable by default json code"""
     if isinstance(obj, datetime):
@@ -414,3 +432,7 @@ def json_encode(obj, **kwargs):
 def json_decode(x):
     """JSON decoder that does ugly first-level datetime handling"""
     return json.loads(x, object_hook=json_hook)
+
+def versiontuple(v):
+    """Return the version as a tuple for easy comparison."""
+    return tuple(int(x) for x in v.split("."))

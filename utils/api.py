@@ -290,6 +290,8 @@ def tasks_report(task_id, report_format="json"):
         tar = tarfile.open(fileobj=s, mode=tarmode, dereference=True)
         for filedir in os.listdir(srcdir):
             filepath = os.path.join(srcdir, filedir)
+            if not os.path.exists(filepath):
+                continue
             if bzf["type"] == "-" and filedir not in bzf["files"]:
                 tar.add(filepath, arcname=filedir)
             if bzf["type"] == "+" and filedir in bzf["files"]:
@@ -304,7 +306,12 @@ def tasks_report(task_id, report_format="json"):
         return json_error(400, "Invalid report format")
 
     if os.path.exists(report_path):
-        return open(report_path, "rb").read()
+        if report_format == "json":
+            response = make_response(open(report_path, "rb").read())
+            response.headers["Content-Type"] = "application/json"
+            return response
+        else:
+            return open(report_path, "rb").read()
     else:
         return json_error(404, "Report not found")
 
@@ -512,7 +519,7 @@ def memorydumps_list(task_id):
         if len(memory_files) == 0:
             return json_error(404, "Memory dump not found")
 
-        return jsonify(memory_files)
+        return jsonify({"dump_files": memory_files})
     else:
         return json_error(404, "Memory dump not found")
 
