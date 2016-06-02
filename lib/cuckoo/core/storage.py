@@ -32,4 +32,6 @@ def storeResultsAWS(analysis_id):
 
             except Exception as ex:
                 log.warn("[x] storeResultsAWS: %s" % ex)
+    log.info("AWS Upload Complete")
+    return
 

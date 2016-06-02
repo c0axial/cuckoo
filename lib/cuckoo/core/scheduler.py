@@ -521,7 +521,8 @@ class AnalysisManager(threading.Thread):
 
         active_analysis_count -= 1
 
-        log.info("AWS Setting {}".format(self.cfg.cuckoo.aws))
+        log.debug("AWS Setting {}".format(self.cfg.cuckoo.aws))
+        log.info("Uploading Task #{} to AWS".format(self.task.id))
         if self.cfg.cuckoo.aws:
             storeResultsAWS(self.task.id)
 
